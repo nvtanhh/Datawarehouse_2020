@@ -11,8 +11,8 @@ import extract.Extracter;
 import transform.Transformer;
 
 public class Control {
-//	private ExtractStudent extractor = new ExtractStudent();
 	public static Connection controlConn;
+	public static String watcher = "kingtxx98@gmail.com";
 
 	public Control() throws Exception {
 		loadControlConnection();

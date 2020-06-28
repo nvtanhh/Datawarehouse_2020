@@ -45,28 +45,41 @@ public class Transformer {
 
 		String sql = "SELECT * FROM " + staging_table;
 		String insertSql = "INSERT INTO " + warehouse_table
-				+ "(mssv,lastname,firstname,dob,class_id,class_name,phone,email,hometown,note) VALUES(?,?,?,?,?,?,?,?,?,?)";
+				+ "(mssv,lastname,firstname,dob_sk,class_id,class_name,phone,email,hometown,note) VALUES(?,?,?,?,?,?,?,?,?,?)";
 		ResultSet rsStaging = stagingStatement.executeQuery(sql);
 		while (rsStaging.next()) {
+			try {
 				PreparedStatement pStatement = warehouseConn.prepareStatement(insertSql);
 				pStatement.setString(1, rsStaging.getString("mssv"));
 				pStatement.setString(2, rsStaging.getString("lastname"));
 				pStatement.setString(3, rsStaging.getString("firstname"));
-				pStatement.setDate(4, java.sql.Date.valueOf(rsStaging.getString("dob"))); // yyyy-mm-dd
+				int dateSK = getDateSK(warehouseConn, rsStaging.getString("dob")); // yyyy-mm-dd
+				pStatement.setInt(4, dateSK);
 				pStatement.setString(5, rsStaging.getString("class_id"));
 				pStatement.setString(6, rsStaging.getString("class_name"));
 				pStatement.setString(7, rsStaging.getString("phone"));
 				pStatement.setString(8, rsStaging.getString("email"));
 				pStatement.setString(9, rsStaging.getString("hometown"));
 				pStatement.setString(10, rsStaging.getString("note"));
-				
 				pStatement.executeUpdate();
+			} catch (Exception e) {
+				e.printStackTrace();
+				continue;
+			}
 		}
 	}
 
-//	private static boolean isExistInWarehouse() {
-//		return false;
-//	}
+	private static int getDateSK(Connection warehouseConn, String fullDate) throws SQLException {
+		String sql = "SELECT date_sk FROM date_dim WHERE full_date = '" + fullDate + "'";
+		System.out.println(sql);
+		Statement statement = warehouseConn.createStatement();
+		ResultSet rs = statement.executeQuery(sql);
+		if (rs.next()) {
+			return rs.getInt("date_sk");
+		}
+		return -1;
+	}
+
 
 	public static void main(String[] args) throws Exception {
 		String d = "1998-11-20";
