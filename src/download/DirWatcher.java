@@ -57,7 +57,6 @@ public class DirWatcher extends Thread {
 				Kind<?> kind = null;
 				for (WatchEvent<?> watchEvent : key.pollEvents()) {
 					kind = watchEvent.kind();
-					@SuppressWarnings("unchecked")
 					Path dir = (Path) key.watchable();
 					String fullPath = dir.resolve((Path) watchEvent.context()).toAbsolutePath().toString();
 //					Path newPath = ((WatchEvent<Path>) watchEvent).context();

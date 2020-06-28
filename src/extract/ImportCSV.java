@@ -5,23 +5,24 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.Date;
 
+import javax.naming.CommunicationException;
+
 import dao.DBConnector;
 import model.MyLog;
 import model.Statuses;
 import utils.TableHelpper;
 
 public class ImportCSV {
-	static Timestamp startDT, endDT;
+	static Timestamp  endDT;
 
-	public static MyLog importCSVtoDB(String src, String stagingTable, int stagingDB) throws Exception {
+	public static MyLog importCSVtoDB(String src, String stagingTable, int stagingDB) throws CommunicationException {
 		String cmt = "";
 
-		startDT = new Timestamp(new Date().getTime());
 		try (Connection connection = DBConnector.getConnectionFormDB(stagingDB)) {
 
 			String which_column = TableHelpper.getCols(connection, stagingTable);
 
-			startDT = new Timestamp(new Date().getTime());
+			
 
 			String loadQuery = "LOAD DATA LOCAL INFILE '" + src + "' INTO TABLE " + stagingTable + ""
 					+ " FIELDS TERMINATED BY ',' (" + which_column + ")";
@@ -35,23 +36,13 @@ public class ImportCSV {
 			cmt = "Extract " + rs + " from '" + src + "' records into " + connection.getCatalog() + "/" + stagingTable;
 
 			MyLog log = new MyLog();
-			log.setExtractStartDT(startDT);
 			log.setExtractEndDT(endDT);
 			log.setStatus(Statuses.TRANSFORM_READY);
 			log.setComment(cmt);
 
 			return log;
 		} catch (Exception e) {
-			e.printStackTrace();
-			endDT = new Timestamp(new Date().getTime());
-			cmt = e.toString(); // read only first 50 characters
-
-			MyLog log = new MyLog();
-			log.setExtractStartDT(startDT);
-			log.setExtractEndDT(endDT);
-			log.setStatus(Statuses.ERROR);
-			log.setComment(cmt);
-			return log;
+			throw new CommunicationException(e.getMessage());
 		}
 	}
 

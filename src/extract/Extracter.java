@@ -9,6 +9,7 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.Date;
 
+import mail.EmailHelper;
 import model.MyLog;
 import model.Statuses;
 import run.Control;
@@ -42,6 +43,8 @@ public class Extracter {
 		MyLog log = null;
 		String tempCsvFile = null;
 
+		Timestamp startDT = new Timestamp(new Date().getTime());
+		
 		try {
 			if (FileExtentionUtils.isExcel(filePath)) {
 				tempCsvFile = CSVUtils.convertExcelToCSV(filePath);
@@ -50,24 +53,29 @@ public class Extracter {
 			if (FileExtentionUtils.isTxt(filePath) || FileExtentionUtils.isCSV(filePath)) {
 				tempCsvFile = CSVUtils.convertTxtToCSV(filePath);
 			}
+
 			tempCsvFile = CSVUtils.fillter(tempCsvFile); // .csv
 
 			if (tempCsvFile != null && CSVUtils.countField(tempCsvFile) > 8) {
 				log = ImportCSV.importCSVtoDB(tempCsvFile.replace("\\", "\\\\"), stagingTable, stagingDB);
 				log.setId(logID);
+				log.setExtractStartDT(startDT);
 				log.commitExtract();
 				delete(tempCsvFile);
-
 				return;
 			} else {
+				delete(tempCsvFile);
+
 				log = new MyLog();
 				log.setId(logID);
-				log.setExtractStartDT(new Timestamp(new Date().getTime()));
+				log.setExtractStartDT(startDT);
+				log.setExtractEndDT(new Timestamp(new Date().getTime()));
 				log.setStatus(Statuses.ERROR);
 				log.setComment("Not enough fields");
 				log.commitExtract();
 
-				delete(tempCsvFile);
+				sendMail("error", logID, "Not enougt fields");
+
 				return;
 			}
 		} catch (Exception e) {
@@ -75,11 +83,24 @@ public class Extracter {
 
 			log = new MyLog();
 			log.setId(logID);
-			log.setExtractStartDT(new Timestamp(new Date().getTime()));
+			log.setExtractStartDT(startDT);
+			log.setExtractEndDT(new Timestamp(new Date().getTime()));
 			log.setStatus(Statuses.ERROR);
 			log.setComment(e.getMessage());
 			log.commitExtract();
+			
+			sendMail("error", logID, e.getMessage());
 		}
+	}
+
+	private static void sendMail(String type, int logID, String mess) {
+		String watcher = Control.watcher;
+		String subject = "Datawarehouse_2020 " + type.toUpperCase() + " notifycation";
+		String body = "LogID: " + logID + "\r\n" + "Detail: " + mess + "\r\n"
+				+ "Please check it out as soon as posible";
+		EmailHelper email = new EmailHelper(watcher, subject, body);
+		email.start(); // start thread send email 
+
 	}
 
 	private static void delete(String src) {
