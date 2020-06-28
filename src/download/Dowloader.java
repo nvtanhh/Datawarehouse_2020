@@ -1,5 +1,6 @@
 package download;
 
+import java.io.File;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.sql.Timestamp;
@@ -23,8 +24,12 @@ public class Dowloader {
 			String username = rs.getString("username");
 			String passwd = rs.getString("password");
 			String fileName = rs.getString("remote_dir");
-			String storeAt = rs.getString("local_dir");
+			String localDir = rs.getString("local_dir");
 			String types = rs.getString("types");
+			
+			File folder = new File(localDir);
+			if(!folder.exists())
+				folder.createNewFile();
 
 			String[] extentions = { types };
 			if (types.split(",").length != 0) {
@@ -33,11 +38,11 @@ public class Dowloader {
 
 			SCPDownload scp = new SCPDownload(hostname, ssh_port, username, passwd);
 
-			DirWatcher watcher = new DirWatcher(storeAt);
-			watcher.start();
-			scp.downloadFileByExtentions(extentions, fileName, storeAt, 6);
+			DirWatcher watcher = new DirWatcher(localDir);  
+			watcher.start();   // start watcher thread 
+			scp.downloadFileByExtentions(extentions, fileName, localDir, 6);
 			// mode=6: Download newer and missing files or files with size differences.
-			watcher.stopRunning();
+			watcher.stopRunning(); // stop watcher thread
 			Map<String, Timestamp> newFiles = watcher.getNewFiles();
 			Set<String> set = newFiles.keySet();
 			for (String key : set) {
