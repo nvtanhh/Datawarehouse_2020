@@ -7,12 +7,12 @@ import java.util.Properties;
 
 import dao.DBConnector;
 import download.Dowloader;
-import extract.Extracter;
-import transform.Transformer;
+import etl.Extracter;
+import etl.Transformer;
 
 public class Control {
 	public static Connection controlConn;
-	public static String watcher = "kingtxx98@gmail.com";
+	public static String watcher = "17130171@st.hcmuaf.edu.vn";
 
 	public Control() throws Exception {
 		loadControlConnection();
@@ -20,7 +20,7 @@ public class Control {
 //		Dowloader.startDowload();
 
 //		Extracter.extract2Staging();
-		
+//		
 		Transformer.transform2warehouse();
 
 	}

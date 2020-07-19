@@ -1,4 +1,4 @@
-package extract;
+ package etl;
 
 import java.io.File;
 import java.io.IOException;
@@ -54,9 +54,8 @@ public class Extracter {
 				tempCsvFile = CSVUtils.convertTxtToCSV(filePath);
 			}
 
-			tempCsvFile = CSVUtils.fillter(tempCsvFile); // .csv
 
-			if (tempCsvFile != null && CSVUtils.countField(tempCsvFile) > 8) {
+			if (tempCsvFile != null && CSVUtils.countField(tempCsvFile) > 9) {
 				log = ImportCSV.importCSVtoDB(tempCsvFile.replace("\\", "\\\\"), stagingTable, stagingDB);
 				log.setId(logID);
 				log.setExtractStartDT(startDT);
@@ -74,7 +73,7 @@ public class Extracter {
 				log.setComment("Not enough fields");
 				log.commitExtract();
 
-				sendMail("error", logID, "Not enougt fields");
+//				sendMail("error", logID, "Not enougt fields");
 
 				return;
 			}
@@ -89,7 +88,7 @@ public class Extracter {
 			log.setComment(e.getMessage());
 			log.commitExtract();
 			
-			sendMail("error", logID, e.getMessage());
+//			sendMail("error", logID, e.getMessage());
 		}
 	}
 
@@ -103,7 +102,7 @@ public class Extracter {
 
 	}
 
-	private static void delete(String src) {
+	public static void delete(String src) {
 		if (src == null || src.isEmpty())
 			return;
 		try {

@@ -8,6 +8,7 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -29,15 +30,14 @@ public class CSVUtils {
 
 	public static String convertExcelToCSV(String fileName) throws CommunicationException {
 		InputStream is = null;
-		BufferedWriter output = null;
+		PrintWriter output = null;
 		try {
 			is = new FileInputStream(fileName);
 
 			File file = new File(fileName + ".csv");
 			file.createNewFile();
 			file.setWritable(true);
-			FileWriter fw = new FileWriter(file);
-			output = new BufferedWriter(fw);
+			output = new PrintWriter(new OutputStreamWriter(new FileOutputStream(file), "UTF-8"));
 
 			Workbook wb = WorkbookFactory.create(is);
 
@@ -54,7 +54,7 @@ public class CSVUtils {
 
 			// hopefully the first row is a header and has a full compliment of
 			// cells, else you'll have to pass in a max (yuck)
-			int maxColumns = sheet.getRow(0).getLastCellNum();
+			int maxCol = sheet.getRow(0).getLastCellNum();
 			Iterator<Row> rowIterator = sheet.iterator();
 			while (rowIterator.hasNext()) {
 				Row row = rowIterator.next();
@@ -63,11 +63,8 @@ public class CSVUtils {
 				// row.getFirstCellNum() and row.getLastCellNum() don't return the
 				// first and last index when the first or last column is blank
 
-				int minCol = 0; // row.getFirstCellNum()
-				int maxCol = maxColumns; // row.getLastCellNum()
-
 				String buf = "";
-				for (int i = minCol; i < maxCol; i++) {
+				for (int i = 0; i < maxCol; i++) {
 
 					Cell cell = row.getCell(i);
 					if (i > 0) {
@@ -81,7 +78,7 @@ public class CSVUtils {
 						switch (cell.getCellType()) {
 						case STRING:
 							v = cell.getRichStringCellValue().getString();
-							if(v.contains("/")||v.contains("-")) {
+							if (v.contains("/") || v.contains("-")) {
 								v = parseDate(v);
 							}
 							break;
@@ -107,13 +104,11 @@ public class CSVUtils {
 							break;
 						}
 
-						if (v != null) {
-							buf += toCSV(v);
-						}
+						buf += toCSV(v);
 					}
 				}
-				if (count < maxCol - 1) {
-					output.write(buf + "\r\n");
+				if (count < maxCol - 1 && !isHeaderName(buf)) {
+					output.println(buf);
 				}
 				buf = "";
 			}
@@ -164,13 +159,14 @@ public class CSVUtils {
 			fileOut.createNewFile();
 			out = new PrintWriter(new FileOutputStream(fileOut), true);
 			String line = in.readLine();
-			if (!isHeaderName(line)) {
+			if (!isHeaderName(line)) { // remove header or not
 				out.println(line.substring(line.indexOf(",") + 1));
 			}
 
 			while ((line = in.readLine()) != null) {
-				out.println(line.substring(line.indexOf(",") + 1));
+				out.println(line);
 			}
+
 			in.close();
 			out.close();
 			fileIn.delete();
@@ -240,9 +236,10 @@ public class CSVUtils {
 
 	public static String parseDate(String strDate) {
 		if (strDate != null && !strDate.isEmpty()) {
-			SimpleDateFormat[] formats = new SimpleDateFormat[] { new SimpleDateFormat("MM/dd/yyyy"),
-					new SimpleDateFormat("dd/MM/yyyy"), new SimpleDateFormat("MM-dd-yyyy"),
-					new SimpleDateFormat("yyyy-MM-dd"), new SimpleDateFormat("dd-MM-yyyy") };
+			SimpleDateFormat[] formats = new SimpleDateFormat[] { new SimpleDateFormat("yyyy-MM-dd"),
+					new SimpleDateFormat("yyyy/MM/dd"), new SimpleDateFormat("MM-dd-yyyy"),
+					new SimpleDateFormat("MM/dd/yyyy"), new SimpleDateFormat("dd-MM-yyyy"),
+					new SimpleDateFormat("dd/MM/yyyy") };
 			SimpleDateFormat goal = new SimpleDateFormat("yyyy-MM-dd");
 			Date parsedDate = null;
 			for (int i = 0; i < formats.length; i++) {
@@ -257,9 +254,6 @@ public class CSVUtils {
 		}
 		return strDate;
 	}
-	
-	
-	
 
 	public static int countField(String src) throws CommunicationException {
 		if (src.isEmpty())

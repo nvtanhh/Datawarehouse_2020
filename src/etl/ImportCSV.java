@@ -1,4 +1,4 @@
-package extract;
+package etl;
 
 import java.sql.Connection;
 import java.sql.Statement;
@@ -25,7 +25,7 @@ public class ImportCSV {
 			
 
 			String loadQuery = "LOAD DATA LOCAL INFILE '" + src + "' INTO TABLE " + stagingTable + ""
-					+ " FIELDS TERMINATED BY ',' (" + which_column + ")";
+					+ " FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\\r\\n' (" + which_column + ")";
 			Statement stmt = connection.createStatement();
 			int rs = stmt.executeUpdate(loadQuery);
 			stmt.close();

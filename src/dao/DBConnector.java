@@ -1,10 +1,13 @@
 package dao;
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Properties;
 
 import run.Control;
 
@@ -28,7 +31,7 @@ public class DBConnector {
 	public static Connection getConnectionFormDB(int desDB) {
 		try {
 			String sql = "SELECT * FROM `db_infor` WHERE id = ?";
-			PreparedStatement ps = Control.controlConn.prepareStatement(sql);
+			PreparedStatement ps = loadControlConnection().prepareStatement(sql);
 			ps.setInt(1, desDB);
 			ResultSet rs = ps.executeQuery();
 			if (rs.next()) {
@@ -40,4 +43,25 @@ public class DBConnector {
 		}
 		return null;
 	}
+
+	public static Connection loadControlConnection() {
+		try (FileInputStream f = new FileInputStream("src/config.properties")) {
+
+			// load the properties file
+			Properties pros = new Properties();
+			pros.load(f);
+
+			// assign db parameters
+			String url = pros.getProperty("db.url");
+			String user = pros.getProperty("db.user");
+			String password = pros.getProperty("db.password");
+
+			return getConnection(url, user, password);
+
+		} catch (IOException e) {
+			System.out.println(e.getMessage());
+			return null;
+		}
+	}
+
 }

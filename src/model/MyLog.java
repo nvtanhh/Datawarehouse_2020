@@ -12,7 +12,9 @@ public class MyLog {
 	private Timestamp downloadDT, extractStartDT, extractEndDT, transformStartDT, transformEndDT;
 	private String status;
 	private String comment;
-	private String localPath;
+	private String filePath;
+
+	
 
 	public MyLog() {
 		super();
@@ -47,13 +49,13 @@ public class MyLog {
 
 	public void commitDownload() {
 		Connection connection = Control.controlConn;
-		String sql = "INSERT INTO logs (config_id , download_dt, status, local_path) VALUES (?,?,?,?)";
+		String sql = "INSERT INTO logs (config_id , download_dt, status, file_path) VALUES (?,?,?,?)";
 		try {
 			PreparedStatement pStatement = connection.prepareStatement(sql);
 			pStatement.setInt(1, configID);
 			pStatement.setTimestamp(2, downloadDT);
 			pStatement.setString(3, status);
-			pStatement.setString(4, localPath);
+			pStatement.setString(4, filePath);
 			pStatement.executeUpdate();
 			pStatement.close();
 		} catch (Exception e) {
@@ -148,12 +150,12 @@ public class MyLog {
 		this.comment = comment;
 	}
 
-	public String getLocalPath() {
-		return localPath;
+	public String getFilePath() {
+		return filePath;
 	}
 
-	public void setLocalPath(String localPath) {
-		this.localPath = localPath;
+	public void setFilePath(String filePath) {
+		this.filePath = filePath;
 	}
 
 	public int getId() {

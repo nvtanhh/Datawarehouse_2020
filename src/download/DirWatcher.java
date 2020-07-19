@@ -13,13 +13,13 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.sql.Timestamp;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.collections4.map.HashedMap;
 
 public class DirWatcher extends Thread {
 //	private Set<String> newFiles = new HashSet<String>();
-	private Map<String, Timestamp> newFiles = new HashedMap<String, Timestamp>();
+	private Map<String, Timestamp> newFiles = new HashMap<String, Timestamp>();
 //	private boolean start = false;
 	private File folder;
 	private boolean flag = false;

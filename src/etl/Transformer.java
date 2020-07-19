@@ -1,4 +1,4 @@
-package transform;
+package etl;
 
 import java.sql.Connection;
 import java.sql.Date;
@@ -15,8 +15,6 @@ public class Transformer {
 	static Timestamp startDT, endDT;
 
 	public static void transform2warehouse() throws Exception {
-//		String sql = "SELECT logs.id, staging_table, staging_db, local_path\r\n" + "FROM `config` JOIN `logs`"
-//				+ "WHERE logs.status = '" + Statuses.TRANSFORM_READY + "'";
 
 		String sql = "SELECT * FROM `config`";
 		try {
@@ -62,8 +60,9 @@ public class Transformer {
 				pStatement.setString(9, rsStaging.getString("hometown"));
 				pStatement.setString(10, rsStaging.getString("note"));
 				pStatement.executeUpdate();
+				
+				// Ghi log ???
 			} catch (Exception e) {
-				e.printStackTrace();
 				continue;
 			}
 		}
@@ -71,7 +70,6 @@ public class Transformer {
 
 	private static int getDateSK(Connection warehouseConn, String fullDate) throws SQLException {
 		String sql = "SELECT date_sk FROM date_dim WHERE full_date = '" + fullDate + "'";
-		System.out.println(sql);
 		Statement statement = warehouseConn.createStatement();
 		ResultSet rs = statement.executeQuery(sql);
 		if (rs.next()) {

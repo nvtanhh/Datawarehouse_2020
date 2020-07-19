@@ -44,7 +44,7 @@ public class EmailHelper extends Thread {
 		try {
 			MimeMessage message = new MimeMessage(session);
 			message.setHeader("Content-Type", "text/plain; charset=UTF-8");
-			message.setFrom(new InternetAddress("dangvanda.itnlu@gmail.com"));
+			message.setFrom(new InternetAddress(mail));
 			message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to));
 			message.setSubject(this.subject, "UTF-8");
 			message.setText(this.body, "UTF-8");
@@ -56,6 +56,8 @@ public class EmailHelper extends Thread {
 	}
 
 	public static void main(String[] args) {
+		EmailHelper e = new EmailHelper("kingtxx98@gmail.com", "asdkjah", "asad");
+		e.sendMail();
 	}
 
 }
