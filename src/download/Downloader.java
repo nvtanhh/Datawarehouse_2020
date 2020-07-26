@@ -44,8 +44,10 @@ public class Downloader {
 				String remoteDir = rs.getString("remote_dir");
 				String types = rs.getString("file_extentions");
 				String regex = rs.getString("file_regex").replace("\\\\", "\\");
+				
 				if (!folder.exists())
 					folder.mkdirs();
+				
 				SSHManager instance = new SSHManager(userName, password, host, "", port);
 				String errorMessage = instance.connect();
 				if (errorMessage != null) {
@@ -207,7 +209,7 @@ public class Downloader {
 
 	public static void main(String[] args) throws Exception {
 
-		startDowload(2);
+		startDowload(5);
 
 //		System.out.println(getHashedMd5("D:\\Development\\workspace\\school\\2019-2020-HK2\\DataWarehouse\\data\\sinhvien\\sinhvien_sang_nhom9.xlsx"));
 

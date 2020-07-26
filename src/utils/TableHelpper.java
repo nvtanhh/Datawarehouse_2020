@@ -5,6 +5,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 public class TableHelpper {
 
@@ -31,6 +32,27 @@ public class TableHelpper {
 			e.printStackTrace();
 		}
 		return false;
+	}
+	
+	
+	public static void createTable(Connection connection, String into_table, String which_column) {
+		String[] columns = which_column.split(",");
+
+		String sql = "CREATE TABLE " + into_table + " (id INTEGER NOT NULL AUTO_INCREMENT, ";
+		for (int i = 0; i < columns.length; i++) {
+			sql += columns[i] + " VARCHAR(255), ";
+		}
+		sql += " PRIMARY KEY ( id ))";
+
+		Statement statement;
+		try {
+			statement = connection.createStatement();
+			statement.executeUpdate(sql);
+			statement.close();
+			System.out.println("CREATE TABLE " + into_table + " WITH " + which_column);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 
 }

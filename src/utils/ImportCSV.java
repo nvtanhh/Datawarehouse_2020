@@ -13,14 +13,19 @@ import model.LogStatus;
 public class ImportCSV {
 	static Timestamp endDT;
 
-	public static MyLog importCSVtoDB(String src, String stagingTable, Connection stagingConn) throws CommunicationException {
+	public static MyLog importCSVtoDB(String src, String stagingTable, Connection stagingConn, String stagingFields)
+			throws CommunicationException {
 		String cmt = "";
+		
+		if (!TableHelpper.isExist(stagingConn, stagingTable)) {
+			TableHelpper.createTable(stagingConn, stagingTable, stagingFields);
+		}
 
 		try {
-			String fields = TableHelpper.getCols(stagingConn, stagingTable);
-			if (src != null && checkFields(fields, src)) {
+//			stagingFields = TableHelpper.getCols(stagingConn, stagingTable);
+			if (src != null && checkFields(stagingFields, src)) {
 				String loadQuery = "LOAD DATA LOCAL INFILE '" + src + "' INTO TABLE " + stagingTable + ""
-						+ " FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\\r\\n' (" + fields
+						+ " FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\\r\\n' (" + stagingFields
 						+ ")";
 				Statement stmt = stagingConn.createStatement();
 				int rs = stmt.executeUpdate(loadQuery);
@@ -52,25 +57,5 @@ public class ImportCSV {
 	private static boolean checkFields(String which_column, String src) throws CommunicationException {
 		return which_column.split(",").length == CSVUtils.countField(src);
 	}
-
-//	private static void createTable(Connection connection, String into_table, String which_column) {
-//		String[] columns = which_column.split(",");
-//
-//		String sql = "CREATE TABLE " + into_table + " (id INTEGER not NULL AUTO_INCREMENT, ";
-//		for (int i = 0; i < columns.length; i++) {
-//			sql += columns[i] + " VARCHAR(255), ";
-//		}
-//		sql += " PRIMARY KEY ( id ))";
-//
-//		Statement statement;
-//		try {
-//			statement = connection.createStatement();
-//			statement.executeUpdate(sql);
-//			System.out.println("CREATE TABLE " + into_table + " WITH " + which_column);
-//		} catch (SQLException e) {
-//			e.printStackTrace();
-//		}
-//
-//	}
 
 }

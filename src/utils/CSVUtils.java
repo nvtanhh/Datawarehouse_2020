@@ -1,11 +1,9 @@
 package utils;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -54,11 +52,11 @@ public class CSVUtils {
 
 			// hopefully the first row is a header and has a full compliment of
 			// cells, else you'll have to pass in a max (yuck)
-			int maxCol = sheet.getRow(0).getLastCellNum();
+			int maxCol = header.size();
 			Iterator<Row> rowIterator = sheet.iterator();
-			
+
 			rowIterator.next(); // ignor first row (header)
-			
+
 			while (rowIterator.hasNext()) {
 				Row row = rowIterator.next();
 
@@ -111,6 +109,8 @@ public class CSVUtils {
 					}
 				}
 				if (count < maxCol - 1) {
+					if (countComma(buf) >= maxCol)
+						buf = buf.trim().replaceAll(",$", "");
 					output.println(buf);
 				}
 				buf = "";
@@ -153,11 +153,14 @@ public class CSVUtils {
 	}
 
 	public static void main(String[] args) throws Exception {
-//		String s = convertExcelToCSV(
-//				"D:\\Development\\workspace\\school\\2019-2020-HK2\\DataWarehouse\\data\\raw\\17130132_Data.xlsx"); // ok
-//		fillter(s);
+//		 convertExcelToCSV(
+//				"D:\\Development\\workspace\\school\\2019-2020-HK2\\DataWarehouse\\data\\subjects\\subjects1.xlsx"); // ok
 //		convertTxtToCSV("data/raw/a.txt");
-		System.out.println(parseDate("2/27/1997"));
+//		System.out.println(parseDate("2/27/1997"));
+
+//		String str = "kushalhs,mayurvm,narendrabz,,,";
+//		str = str.trim().replaceAll(",$", "");
+//		System.out.println(str);  // prints "kushalhs, mayurvm, narendrabz"
 
 	}
 
@@ -168,12 +171,13 @@ public class CSVUtils {
 			File fileOut = new File(src + ".csv");
 			PrintWriter out = new PrintWriter(new FileOutputStream(fileOut), true);
 			String line;
-			
-			in.readLine();  // ignor first row (header)
-			
+
+			in.readLine(); // ignor first row (header)
+
 			while ((line = in.readLine()) != null) {
 				line = line.replace("|", ",").replace("\t", ","); // Dilimiter
 				line = reFormatDate(line);
+				line = line.trim().replaceAll(",$", "");
 				out.println(line);
 			}
 			in.close();
@@ -227,13 +231,24 @@ public class CSVUtils {
 		BufferedReader in;
 		try {
 			in = new BufferedReader(new InputStreamReader(new FileInputStream(fileIn)));
-			String[] spliter = in.readLine().split(",");
+			int fields = countComma(in.readLine()) + 1; // Example: if 6 commas -> 7 fields
 			in.close();
-			return spliter.length;
+			return fields;
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return -1;
+	}
+
+	private static int countComma(String line) {
+		int count = 0;
+
+		// Counts each character except space
+		for (int i = 0; i < line.length(); i++) {
+			if (line.charAt(i) == ',')
+				count++;
+		}
+		return count;
 	}
 
 }

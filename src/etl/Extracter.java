@@ -17,7 +17,7 @@ import utils.ImportCSV;
 
 public class Extracter {
 
-	public static void doExtract(int logID, String filePath, String stagingTable, Connection stagingConn)
+	public static void doExtract(int logID, String filePath, String stagingTable, Connection stagingConn, String stagingFields)
 			throws Exception {
 		MyLog log = null;
 		String tempCsvFile = null;
@@ -46,7 +46,7 @@ public class Extracter {
 		}
 
 		try {
-			log = ImportCSV.importCSVtoDB(tempCsvFile.replace("\\", "\\\\"), stagingTable, stagingConn);
+			log = ImportCSV.importCSVtoDB(tempCsvFile.replace("\\", "\\\\"), stagingTable, stagingConn, stagingFields);
 			log.setId(logID);
 			log.setExtractStartDT(startDT);
 			log.commitExtract();

@@ -31,7 +31,7 @@ public class Transformer {
 					for (int i = 0; i < spliter.length; i++) {
 						callStatement.setString(i + 1, rs.getString(spliter[i]));
 					}
-					callStatement.setInt(spliter.length + 1, logID);
+//					callStatement.setInt(spliter.length + 1, logID);
 					try {
 						callStatement.executeQuery();
 
@@ -48,7 +48,7 @@ public class Transformer {
 						for (int i = 0; i < spliter.length; i++) {
 							callStatement.setString(i + 1, rs.getString(spliter[i]));
 						}
-						callStatement.setInt(spliter.length + 1, logID);
+//						callStatement.setInt(spliter.length + 1, logID);
 						callStatement.executeQuery();
 						rowAffected++;
 					}
