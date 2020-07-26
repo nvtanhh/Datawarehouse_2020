@@ -9,15 +9,15 @@ import java.sql.Timestamp;
 import java.util.Date;
 
 import dao.DBConnector;
-import model.LogStatuses;
+import model.LogStatus;
 import model.MyLog;
 
 public class Transformer {
 	public static void doTransform(String stagingTable, Connection stagingConn, String warehouseTable,
-			Connection warehouseConn, String targetFields, int processID, String sourcesType, int logID) throws SQLException {
+			Connection warehouseConn, String targetFields, int processConfigID, String sourcesType, int logID) throws SQLException {
 		Timestamp startDT = new Timestamp(new Date().getTime());
 		try {
-			String callQuery = buildCallQuery(processID);
+			String callQuery = buildCallQuery(processConfigID);
 			CallableStatement callStatement = warehouseConn.prepareCall(callQuery);
 			warehouseConn.setAutoCommit(false);
 			String sql = "SELECT * FROM `" + stagingTable + "`";
@@ -63,7 +63,7 @@ public class Transformer {
 			log.setId(logID);
 			log.setTransformStartDT(startDT);
 			log.setTransformEndDT(new Timestamp(new Date().getTime()));
-			log.setStatus(LogStatuses.SUCCESS);
+			log.setStatus(LogStatus.SUCCESS);
 			log.setComment("Load " + rowAffected + " records to " + warehouseTable + " successfully");
 			log.commitTransform();
 
@@ -72,16 +72,16 @@ public class Transformer {
 			log.setId(logID);
 			log.setTransformStartDT(startDT);
 			log.setTransformEndDT(new Timestamp(new Date().getTime()));
-			log.setStatus(LogStatuses.ERROR);
+			log.setStatus(LogStatus.ERROR);
 			log.setComment(e.getMessage());
 			log.commitTransform();
 		}
 
 	}
 
-	private static String buildCallQuery(int processID) throws SQLException {
+	private static String buildCallQuery(int processConfigID) throws SQLException {
 		Statement connStatement = DBConnector.loadControlConnection().createStatement();
-		String sql = "SELECT * FROM `processes` WHERE id = " + processID;
+		String sql = "SELECT * FROM `process_config` WHERE id = " + processConfigID;
 		ResultSet rs = connStatement.executeQuery(sql);
 		String callquery = "call ";
 		if (rs.next()) {

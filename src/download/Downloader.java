@@ -16,8 +16,10 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import dao.DBConnector;
-import model.LogStatuses;
+import model.LogStatus;
 import model.MyLog;
+import model.Process;
+import model.ProcessStatus;
 import utils.FileExtentionUtils;
 
 public class Downloader {
@@ -30,18 +32,18 @@ public class Downloader {
 		ResultSet rs = statement.executeQuery(sql);
 		if (rs.next()) {
 			int configID = rs.getInt("id");
-			String host = rs.getString("host");
-			int port = rs.getInt("port");
-			String userName = rs.getString("username");
-			String password = rs.getString("password");
-			String remoteDir = rs.getString("remote_dir");
 			String localDir = rs.getString("local_dir");
-			String types = rs.getString("file_extentions");
-			String regex = rs.getString("file_regex").replace("\\\\", "\\");
 			String sourcesStatus = rs.getString("sources_status");
 
 			if (sourcesStatus.equals("REMOTE")) {
 				File folder = new File(localDir);
+				String host = rs.getString("host");
+				int port = rs.getInt("port");
+				String userName = rs.getString("username");
+				String password = rs.getString("password");
+				String remoteDir = rs.getString("remote_dir");
+				String types = rs.getString("file_extentions");
+				String regex = rs.getString("file_regex").replace("\\\\", "\\");
 				if (!folder.exists())
 					folder.mkdirs();
 				SSHManager instance = new SSHManager(userName, password, host, "", port);
@@ -64,18 +66,25 @@ public class Downloader {
 					// Write log
 					MyLog log = new MyLog();
 					log.setConfig_id(configID);
-					log.setStatus(LogStatuses.EXTRACT_READY);
+					log.setStatus(LogStatus.EXTRACT_READY);
 					log.setDownloadDT(new Timestamp(new Date().getTime()));
 					log.setFilePath(lfile);
 					log.commitDownload();
 				}
+				// QUEUE a new process in db
+				Process process = new Process();
+				process.setDataConfigID(configID);
+				process.setStatus(ProcessStatus.QUEUED);
+				process.setComment("Etl "+ filesNeedDownload.size() + " files");
+				process.save();
+				
 				instance.close();
 			} else if (sourcesStatus.equals("LOCAL")) {
 				File local = new File(localDir);
 				if (!local.exists()) {
 					MyLog log = new MyLog();
 					log.setConfig_id(configID);
-					log.setStatus(LogStatuses.ERROR);
+					log.setStatus(LogStatus.ERROR);
 					log.setDownloadDT(new Timestamp(new Date().getTime()));
 					log.setFilePath(local.getAbsolutePath());
 					log.setComment("File is not exists");
@@ -85,10 +94,17 @@ public class Downloader {
 						if (isCheckSumHasChange(local.getAbsolutePath(), configID)) {
 							MyLog log = new MyLog();
 							log.setConfig_id(configID);
-							log.setStatus(LogStatuses.EXTRACT_READY);
+							log.setStatus(LogStatus.EXTRACT_READY);
 							log.setDownloadDT(new Timestamp(new Date().getTime()));
 							log.setFilePath(local.getAbsolutePath());
 							log.commitDownload();
+							
+							// QUEUE a new process in db
+							Process process = new Process();
+							process.setDataConfigID(configID);
+							process.setStatus(ProcessStatus.QUEUED);
+							process.setComment("Etl 1 file");
+							process.save();
 						}
 					} else if (local.isDirectory()) {
 						File[] files = local.listFiles();
@@ -96,11 +112,18 @@ public class Downloader {
 							if (isCheckSumHasChange(local.getAbsolutePath(), configID)) {
 								MyLog log = new MyLog();
 								log.setConfig_id(configID);
-								log.setStatus(LogStatuses.EXTRACT_READY);
+								log.setStatus(LogStatus.EXTRACT_READY);
 								log.setDownloadDT(new Timestamp(new Date().getTime()));
 								log.setFilePath(files[i].getAbsolutePath());
 								log.commitDownload();
 							}
+							
+							// QUEUE a new process in db
+							Process process = new Process();
+							process.setDataConfigID(configID);
+							process.setStatus(ProcessStatus.QUEUED);
+							process.setComment("Etl "+ files.length + " files");
+							process.save();
 						}
 					}
 				}
@@ -176,7 +199,7 @@ public class Downloader {
 
 		MyLog log = new MyLog();
 		log.setConfig_id(configID);
-		log.setStatus(LogStatuses.EXTRACT_READY);
+		log.setStatus(LogStatus.EXTRACT_READY);
 		log.setDownloadDT(new Timestamp(new Date().getTime()));
 		log.setComment("Connect Failed");
 		log.commitDownload();
@@ -184,10 +207,16 @@ public class Downloader {
 
 	public static void main(String[] args) throws Exception {
 
-//		startDowload(1);
+		startDowload(2);
 
-		System.out.println(getHashedMd5("D:\\Development\\workspace\\school\\2019-2020-HK2\\DataWarehouse\\data\\sinhvien\\sinhvien_sang_nhom9.xlsx"));
+//		System.out.println(getHashedMd5("D:\\Development\\workspace\\school\\2019-2020-HK2\\DataWarehouse\\data\\sinhvien\\sinhvien_sang_nhom9.xlsx"));
 
+//		Pattern pattern = Pattern.compile("^sinhvien.*");
+//		String test = "sinhvien_asdsada3.xlsx";
+//		System.out.println(pattern.matcher(test).matches());
+		
+		
+		
 	}
 
 }

@@ -10,7 +10,7 @@ import java.util.Date;
 import javax.naming.CommunicationException;
 
 import model.MyLog;
-import model.LogStatuses;
+import model.LogStatus;
 import utils.CSVUtils;
 import utils.FileExtentionUtils;
 import utils.ImportCSV;
@@ -38,7 +38,7 @@ public class Extracter {
 			log.setId(logID);
 			log.setExtractStartDT(startDT);
 			log.setExtractEndDT(new Timestamp(new Date().getTime()));
-			log.setStatus(LogStatuses.ERROR);
+			log.setStatus(LogStatus.ERROR);
 			log.setComment(e.getMessage());
 			log.commitExtract();
 //			sendMail("error", logID, e.getMessage());
@@ -51,7 +51,7 @@ public class Extracter {
 			log.setExtractStartDT(startDT);
 			log.commitExtract();
 			delete(tempCsvFile);
-			if (log.getStatus() == LogStatuses.ERROR) {
+			if (log.getStatus() == LogStatus.ERROR) {
 //					sendMail("error", logID, log.getComment());
 				throw new Exception();
 			}
@@ -61,7 +61,7 @@ public class Extracter {
 			log.setId(logID);
 			log.setExtractStartDT(startDT);
 			log.setExtractEndDT(new Timestamp(new Date().getTime()));
-			log.setStatus(LogStatuses.ERROR);
+			log.setStatus(LogStatus.ERROR);
 			log.setComment(e.getMessage());
 			log.commitExtract();
 		}

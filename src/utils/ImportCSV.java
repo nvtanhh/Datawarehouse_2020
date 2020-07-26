@@ -8,7 +8,7 @@ import java.util.Date;
 import javax.naming.CommunicationException;
 
 import model.MyLog;
-import model.LogStatuses;
+import model.LogStatus;
 
 public class ImportCSV {
 	static Timestamp endDT;
@@ -33,14 +33,14 @@ public class ImportCSV {
 
 				MyLog log = new MyLog();
 				log.setExtractEndDT(endDT);
-				log.setStatus(LogStatuses.TRANSFORM_READY);
+				log.setStatus(LogStatus.TRANSFORM_READY);
 				log.setComment(cmt);
 
 				return log;
 			} else {
 				MyLog log = new MyLog();
 				log.setExtractEndDT(endDT);
-				log.setStatus(LogStatuses.ERROR);
+				log.setStatus(LogStatus.ERROR);
 				log.setComment("Not enough fields");
 				return log;
 			}
