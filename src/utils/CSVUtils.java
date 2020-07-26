@@ -56,6 +56,9 @@ public class CSVUtils {
 			// cells, else you'll have to pass in a max (yuck)
 			int maxCol = sheet.getRow(0).getLastCellNum();
 			Iterator<Row> rowIterator = sheet.iterator();
+			
+			rowIterator.next(); // ignor first row (header)
+			
 			while (rowIterator.hasNext()) {
 				Row row = rowIterator.next();
 
@@ -107,7 +110,7 @@ public class CSVUtils {
 						buf += toCSV(v);
 					}
 				}
-				if (count < maxCol - 1 && !isHeaderName(buf)) {
+				if (count < maxCol - 1) {
 					output.println(buf);
 				}
 				buf = "";
@@ -149,47 +152,6 @@ public class CSVUtils {
 		return v;
 	}
 
-	public static String fillter(String src) throws CommunicationException {
-		BufferedReader in = null;
-		PrintWriter out = null;
-		try {
-			File fileIn = new File(src);
-			in = new BufferedReader(new InputStreamReader(new FileInputStream(fileIn)));
-			File fileOut = new File(src + ".temp");
-			fileOut.createNewFile();
-			out = new PrintWriter(new FileOutputStream(fileOut), true);
-			String line = in.readLine();
-			if (!isHeaderName(line)) { // remove header or not
-				out.println(line.substring(line.indexOf(",") + 1));
-			}
-
-			while ((line = in.readLine()) != null) {
-				out.println(line);
-			}
-
-			in.close();
-			out.close();
-			fileIn.delete();
-			fileOut.renameTo(fileIn);
-			return fileIn.getAbsolutePath();
-		} catch (Exception e) {
-			throw new CommunicationException(e.getMessage());
-		}
-
-	}
-
-	private static boolean isHeaderName(String line) {
-		String[] colName = { "stt", "mssv", "id", "firstname", "Họ lót", "tên", "lastname", "email" };
-		String[] spliter = line.split(",");
-		for (int i = 0; i < colName.length; i++) {
-			for (int j = 0; j < spliter.length; j++) {
-				if (spliter[j].toLowerCase().contains(colName[i]))
-					return true;
-			}
-		}
-		return false;
-	}
-
 	public static void main(String[] args) throws Exception {
 //		String s = convertExcelToCSV(
 //				"D:\\Development\\workspace\\school\\2019-2020-HK2\\DataWarehouse\\data\\raw\\17130132_Data.xlsx"); // ok
@@ -206,6 +168,9 @@ public class CSVUtils {
 			File fileOut = new File(src + ".csv");
 			PrintWriter out = new PrintWriter(new FileOutputStream(fileOut), true);
 			String line;
+			
+			in.readLine();  // ignor first row (header)
+			
 			while ((line = in.readLine()) != null) {
 				line = line.replace("|", ",").replace("\t", ","); // Dilimiter
 				line = reFormatDate(line);

@@ -10,6 +10,7 @@ import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
+
 public class EmailHelper extends Thread {
 	private static String mail = "nvtanh4vipm@gmail.com";
 	private static String pass = "vipmember";
@@ -26,7 +27,7 @@ public class EmailHelper extends Thread {
 		super.run();
 		sendMail();
 	}
-	
+
 	private void sendMail() {
 		Properties props = new Properties();
 		props.put("mail.smtp.auth", "true");
@@ -54,6 +55,13 @@ public class EmailHelper extends Thread {
 			e.printStackTrace();
 		}
 	}
+
+//	private static void sendMail(String type, String mess) {
+//		String watcher = Control.watcher;
+//		String subject = "Datawarehouse_2020 " + type.toUpperCase() + " notifycation";
+//		EmailHelper email = new EmailHelper(watcher, subject, mess);
+//		email.start(); // start thread send email
+//	}
 
 	public static void main(String[] args) {
 		EmailHelper e = new EmailHelper("kingtxx98@gmail.com", "asdkjah", "asad");

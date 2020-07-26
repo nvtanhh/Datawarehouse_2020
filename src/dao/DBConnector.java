@@ -9,7 +9,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Properties;
 
-import run.Control;
 
 public class DBConnector {
 	private static String dbConfig = "?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=Asia/Ho_Chi_Minh&allowLoadLocalInfile = true";

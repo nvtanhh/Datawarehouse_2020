@@ -1,87 +1,94 @@
 package etl;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.Date;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.util.Date;
 
 import dao.DBConnector;
-import run.Control;
+import model.LogStatuses;
+import model.MyLog;
 
 public class Transformer {
-	static Timestamp startDT, endDT;
-
-	public static void transform2warehouse() throws Exception {
-
-		String sql = "SELECT * FROM `config`";
+	public static void doTransform(String stagingTable, Connection stagingConn, String warehouseTable,
+			Connection warehouseConn, String targetFields, int processID, String sourcesType, int logID) throws SQLException {
+		Timestamp startDT = new Timestamp(new Date().getTime());
 		try {
-			Statement statement = Control.controlConn.createStatement();
-			ResultSet rs = statement.executeQuery(sql);
-			while (rs.next()) {
-				String stagingTable = rs.getString("staging_table");
-				int stagingDB = rs.getInt("staging_db");
-				String warehouseTable = rs.getString("warehouse_table");
-				int warehouseDB = rs.getInt("warehouse_db");
+			String callQuery = buildCallQuery(processID);
+			CallableStatement callStatement = warehouseConn.prepareCall(callQuery);
+			warehouseConn.setAutoCommit(false);
+			String sql = "SELECT * FROM `" + stagingTable + "`";
+			Statement stagingStatement = stagingConn.createStatement();
+			ResultSet rs = stagingStatement.executeQuery(sql);
+			int rowAffected = 0;
 
-				doTransform(stagingDB, stagingTable, warehouseDB, warehouseTable);
+			if (sourcesType.equals("F")) {  // if data type is fact 
+				while (rs.next()) {
+					String[] spliter = targetFields.split(",");
+					for (int i = 0; i < spliter.length; i++) {
+						callStatement.setString(i + 1, rs.getString(spliter[i]));
+					}
+					callStatement.setInt(spliter.length + 1, logID);
+					try {
+						callStatement.executeQuery();
 
+					} catch (Exception e) {
+						continue;
+					}
+					warehouseConn.commit();
+					rowAffected++;
+				}
+			} else if (sourcesType.equals("D")) { // if data type is dim
+				try {
+					while (rs.next()) {
+						String[] spliter = targetFields.split(",");
+						for (int i = 0; i < spliter.length; i++) {
+							callStatement.setString(i + 1, rs.getString(spliter[i]));
+						}
+						callStatement.setInt(spliter.length + 1, logID);
+						callStatement.executeQuery();
+						rowAffected++;
+					}
+					warehouseConn.commit();
+				} catch (Exception e) {
+					warehouseConn.rollback();
+					rowAffected = 0;
+				}
 			}
-			statement.close();
-		} catch (SQLException e) {
-			e.printStackTrace();
+
+			MyLog log = new MyLog();
+			log.setId(logID);
+			log.setTransformStartDT(startDT);
+			log.setTransformEndDT(new Timestamp(new Date().getTime()));
+			log.setStatus(LogStatuses.SUCCESS);
+			log.setComment("Load " + rowAffected + " records to " + warehouseTable + " successfully");
+			log.commitTransform();
+
+		} catch (Exception e) {
+			MyLog log = new MyLog();
+			log.setId(logID);
+			log.setTransformStartDT(startDT);
+			log.setTransformEndDT(new Timestamp(new Date().getTime()));
+			log.setStatus(LogStatuses.ERROR);
+			log.setComment(e.getMessage());
+			log.commitTransform();
 		}
+
 	}
 
-	private static void doTransform(int staging_db, String staging_table, int warehouse_db, String warehouse_table)
-			throws Exception {
-		Connection stagingConn = DBConnector.getConnectionFormDB(staging_db);
-		Connection warehouseConn = DBConnector.getConnectionFormDB(warehouse_db);
-		Statement stagingStatement = stagingConn.createStatement();
-
-		String sql = "SELECT * FROM " + staging_table;
-		String insertSql = "INSERT INTO " + warehouse_table
-				+ "(mssv,lastname,firstname,dob_sk,class_id,class_name,phone,email,hometown,note) VALUES(?,?,?,?,?,?,?,?,?,?)";
-		ResultSet rsStaging = stagingStatement.executeQuery(sql);
-		while (rsStaging.next()) {
-			try {
-				PreparedStatement pStatement = warehouseConn.prepareStatement(insertSql);
-				pStatement.setString(1, rsStaging.getString("mssv"));
-				pStatement.setString(2, rsStaging.getString("lastname"));
-				pStatement.setString(3, rsStaging.getString("firstname"));
-				int dateSK = getDateSK(warehouseConn, rsStaging.getString("dob")); // yyyy-mm-dd
-				pStatement.setInt(4, dateSK);
-				pStatement.setString(5, rsStaging.getString("class_id"));
-				pStatement.setString(6, rsStaging.getString("class_name"));
-				pStatement.setString(7, rsStaging.getString("phone"));
-				pStatement.setString(8, rsStaging.getString("email"));
-				pStatement.setString(9, rsStaging.getString("hometown"));
-				pStatement.setString(10, rsStaging.getString("note"));
-				pStatement.executeUpdate();
-				
-				// Ghi log ???
-			} catch (Exception e) {
-				continue;
-			}
-		}
-	}
-
-	private static int getDateSK(Connection warehouseConn, String fullDate) throws SQLException {
-		String sql = "SELECT date_sk FROM date_dim WHERE full_date = '" + fullDate + "'";
-		Statement statement = warehouseConn.createStatement();
-		ResultSet rs = statement.executeQuery(sql);
+	private static String buildCallQuery(int processID) throws SQLException {
+		Statement connStatement = DBConnector.loadControlConnection().createStatement();
+		String sql = "SELECT * FROM `processes` WHERE id = " + processID;
+		ResultSet rs = connStatement.executeQuery(sql);
+		String callquery = "call ";
 		if (rs.next()) {
-			return rs.getInt("date_sk");
+			callquery += rs.getString("process_function");
 		}
-		return -1;
-	}
-
-
-	public static void main(String[] args) throws Exception {
-		String d = "1998-11-20";
-		System.out.println(Date.valueOf(d));
+		connStatement.close();
+		return callquery;
 	}
 
 }

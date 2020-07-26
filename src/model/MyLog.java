@@ -2,9 +2,10 @@ package model;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 
-import run.Control;
+import dao.DBConnector;
 
 public class MyLog {
 	private int id;
@@ -13,8 +14,6 @@ public class MyLog {
 	private String status;
 	private String comment;
 	private String filePath;
-
-	
 
 	public MyLog() {
 		super();
@@ -47,28 +46,32 @@ public class MyLog {
 //		}
 //	}
 
-	public void commitDownload() {
-		Connection connection = Control.controlConn;
-		String sql = "INSERT INTO logs (config_id , download_dt, status, file_path) VALUES (?,?,?,?)";
+	public void commitDownload() throws SQLException {
+		Connection connection = DBConnector.loadControlConnection();
+		String sql = "INSERT INTO logs (config_id , download_dt, status, file_path, comment) VALUES (?,?,?,?,?)";
+		PreparedStatement pStatement = null;
 		try {
-			PreparedStatement pStatement = connection.prepareStatement(sql);
+			pStatement = connection.prepareStatement(sql);
 			pStatement.setInt(1, configID);
 			pStatement.setTimestamp(2, downloadDT);
 			pStatement.setString(3, status);
 			pStatement.setString(4, filePath);
+			pStatement.setString(5, comment);
 			pStatement.executeUpdate();
 			pStatement.close();
+			connection.close();
 		} catch (Exception e) {
-			// TODO: handle exception
+			pStatement.close();
+			connection.close();
 		}
 	}
-	
-	
-	public void commitExtract() {
-		Connection connection = Control.controlConn;
+
+	public void commitExtract() throws SQLException {
+		Connection connection = DBConnector.loadControlConnection();
 		String sql = "UPDATE `logs` SET extract_start_dt = ?, extract_end_dt = ?, status = ?, comment = ? WHERE id = ?";
+		PreparedStatement pStatement = null;
 		try {
-			PreparedStatement pStatement = connection.prepareStatement(sql);
+			pStatement = connection.prepareStatement(sql);
 			pStatement.setTimestamp(1, this.extractStartDT);
 			pStatement.setTimestamp(2, this.extractEndDT);
 			pStatement.setString(3, this.status);
@@ -76,10 +79,35 @@ public class MyLog {
 			pStatement.setInt(5, this.id);
 			pStatement.executeUpdate();
 			pStatement.close();
+			connection.close();
 		} catch (Exception e) {
-			// TODO: handle exception
+			pStatement.close();
+			connection.close();
 		}
-		
+
+	}
+
+	public void commitTransform() throws SQLException {
+		Connection connection = DBConnector.loadControlConnection();
+		;
+		String sql = "UPDATE `logs` SET transform_start_dt = ?, transform_end_dt = ?, status = ?, comment = ? WHERE id = ?";
+		PreparedStatement pStatement = null;
+		try {
+			pStatement = connection.prepareStatement(sql);
+			pStatement.setTimestamp(1, this.transformStartDT);
+			pStatement.setTimestamp(2, this.transformEndDT);
+			pStatement.setString(3, this.status);
+			pStatement.setString(4, this.comment);
+			pStatement.setInt(5, this.id);
+			pStatement.executeUpdate();
+			pStatement.close();
+			connection.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+			pStatement.close();
+			connection.close();
+		}
+
 	}
 
 	public void setConfig_id(int config_id) {
@@ -165,9 +193,5 @@ public class MyLog {
 	public void setId(int id) {
 		this.id = id;
 	}
-
-	
-
-	
 
 }

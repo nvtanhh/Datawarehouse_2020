@@ -1,6 +1,10 @@
 package download;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -9,62 +13,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.regex.Pattern;
 
 import dao.DBConnector;
+import model.LogStatuses;
 import model.MyLog;
-import model.Statuses;
-import run.Control;
 import utils.FileExtentionUtils;
 
 public class Downloader {
 
-//	public static void startDowload() throws Exception {
-//		Statement statement = Control.controlConn.createStatement();
-//		String sql = "SELECT * FROM `config`";
-//
-//		ResultSet rs = statement.executeQuery(sql);
-//		while (rs.next()) {
-//			int configID = rs.getInt("id");
-//			String hostname = rs.getString("url");
-//			int ssh_port = rs.getInt("ssh_port");
-//			String username = rs.getString("username");
-//			String passwd = rs.getString("password");
-//			String fileName = rs.getString("remote_dir");
-//			String localDir = rs.getString("local_dir");
-//			String types = rs.getString("types");
-//
-//			File folder = new File(localDir);
-//			if (!folder.exists())
-//				folder.mkdirs();
-//
-//			String[] extentions = { types };
-//			if (types.split(",").length != 0) {
-//				extentions = types.split(",");
-//			}
-//
-//			SCPDownload scp = new SCPDownload(hostname, ssh_port, username, passwd);
-//
-//			DirWatcher watcher = new DirWatcher(localDir);
-//			watcher.start(); // start watcher thread
-//			scp.downloadFileByExtentions(extentions, fileName, localDir, 6);
-//			// mode=6: Download newer and missing files or files with size differences.
-//			watcher.stopRunning(); // stop watcher thread
-//			Map<String, Timestamp> newFiles = watcher.getNewFiles();
-//			Set<String> set = newFiles.keySet();
-//			for (String key : set) {
-//				MyLog log = new MyLog();
-//				log.setConfig_id(configID);
-//				log.setDownloadDT(newFiles.get(key));
-//				log.setStatus(Statuses.EXTRACT_READY);
-//				log.setLocalPath(key);
-//				log.commitDownload();
-//			}
-//		}
-//		statement.close();
-//	}
 
 	public static void startDowload(int id) throws Exception {
 		Statement statement = DBConnector.loadControlConnection().createStatement();
@@ -77,41 +34,92 @@ public class Downloader {
 			int port = rs.getInt("port");
 			String userName = rs.getString("username");
 			String password = rs.getString("password");
-			String remote_dir = rs.getString("remote_dir");
+			String remoteDir = rs.getString("remote_dir");
 			String localDir = rs.getString("local_dir");
-			String types = rs.getString("file_types");
+			String types = rs.getString("file_extentions");
 			String regex = rs.getString("file_regex").replace("\\\\", "\\");
+			String sourcesStatus = rs.getString("sources_status");
 
-			File folder = new File(localDir);
-			if (!folder.exists())
-				folder.mkdirs();
-			SSHManager instance = new SSHManager(userName, password, host, "", port);
-			String errorMessage = instance.connect();
-			if (errorMessage != null) {
-				System.out.println(errorMessage);
-				connectFailed();
+			if (sourcesStatus.equals("REMOTE")) {
+				File folder = new File(localDir);
+				if (!folder.exists())
+					folder.mkdirs();
+				SSHManager instance = new SSHManager(userName, password, host, "", port);
+				String errorMessage = instance.connect();
+				if (errorMessage != null) {
+					System.out.println(errorMessage);
+					connectFailed(statement, configID);
+				}
+				String listFilesCmd = "ls " + remoteDir;
+				String[] allFiles = instance.sendCommand(listFilesCmd).split("\n");
+
+				ArrayList<String> filesNeedDownload = filter(allFiles, types, regex); // filter by extention and
+																						// filename
+
+				filesNeedDownload = checkSum(instance, filesNeedDownload, remoteDir, configID);
+				for (int i = 0; i < filesNeedDownload.size(); i++) {
+					String rfile = filesNeedDownload.get(i);
+					String lfile = localDir + "/" + rfile.substring(rfile.lastIndexOf("/") + 1);
+					instance.download(lfile, rfile);
+					// Write log
+					MyLog log = new MyLog();
+					log.setConfig_id(configID);
+					log.setStatus(LogStatuses.EXTRACT_READY);
+					log.setDownloadDT(new Timestamp(new Date().getTime()));
+					log.setFilePath(lfile);
+					log.commitDownload();
+				}
+				instance.close();
+			} else if (sourcesStatus.equals("LOCAL")) {
+				File local = new File(localDir);
+				if (!local.exists()) {
+					MyLog log = new MyLog();
+					log.setConfig_id(configID);
+					log.setStatus(LogStatuses.ERROR);
+					log.setDownloadDT(new Timestamp(new Date().getTime()));
+					log.setFilePath(local.getAbsolutePath());
+					log.setComment("File is not exists");
+					log.commitDownload();
+				} else {
+					if (local.isFile()) {
+						if (isCheckSumHasChange(local.getAbsolutePath(), configID)) {
+							MyLog log = new MyLog();
+							log.setConfig_id(configID);
+							log.setStatus(LogStatuses.EXTRACT_READY);
+							log.setDownloadDT(new Timestamp(new Date().getTime()));
+							log.setFilePath(local.getAbsolutePath());
+							log.commitDownload();
+						}
+					} else if (local.isDirectory()) {
+						File[] files = local.listFiles();
+						for (int i = 0; i < files.length; i++) {
+							if (isCheckSumHasChange(local.getAbsolutePath(), configID)) {
+								MyLog log = new MyLog();
+								log.setConfig_id(configID);
+								log.setStatus(LogStatuses.EXTRACT_READY);
+								log.setDownloadDT(new Timestamp(new Date().getTime()));
+								log.setFilePath(files[i].getAbsolutePath());
+								log.commitDownload();
+							}
+						}
+					}
+				}
 			}
-			String listFilesCmd = "ls " + remote_dir;
-			String[] allFiles = instance.sendCommand(listFilesCmd).split("\n");
-
-			ArrayList<String> filesNeedDownload = filter(allFiles, types, regex); // filter by extention and filename
-
-			filesNeedDownload = checkSum(instance, filesNeedDownload, remote_dir, configID);
-			for (int i = 0; i < filesNeedDownload.size(); i++) {
-
-				instance.download(localDir, filesNeedDownload.get(i)); 
-				// Write log
-				MyLog log = new MyLog();
-				log.setConfig_id(configID);
-				log.setStatus(Statuses.EXTRACT_READY);
-				log.setDownloadDT(new Timestamp(new Date().getTime()));
-				log.setFilePath(filesNeedDownload.get(i));
-				log.commitDownload(); 
-
-			}
-			instance.close();
+			statement.close();
 		}
-		statement.close();
+	}
+
+	private static boolean isCheckSumHasChange(String src, int configID) throws IOException, SQLException {
+		String md5 = getHashedMd5(src);
+		return hasChange(md5 + "  " + src, configID);  // 2 white space
+	}
+
+	private static String getHashedMd5(String src) throws IOException {
+		try (InputStream is = Files.newInputStream(Paths.get(src))) {
+			String md5 = org.apache.commons.codec.digest.DigestUtils.md5Hex(is);
+			is.close();
+			return md5;
+		}
 	}
 
 	private static ArrayList<String> filter(String[] allFiles, String types, String fileRegex) {
@@ -164,18 +172,21 @@ public class Downloader {
 		return false;
 	}
 
-	private static void connectFailed() {
-		// TODO Auto-generated method stub
+	private static void connectFailed(Statement statement, int configID) throws SQLException {
 
+		MyLog log = new MyLog();
+		log.setConfig_id(configID);
+		log.setStatus(LogStatuses.EXTRACT_READY);
+		log.setDownloadDT(new Timestamp(new Date().getTime()));
+		log.setComment("Connect Failed");
+		log.commitDownload();
 	}
 
 	public static void main(String[] args) throws Exception {
 
-		startDowload(1);
+//		startDowload(1);
 
-//		String n = "sinhvien_chieu_nhom15.xlsx";
-//		Pattern pattern = Pattern.compile("^sinhvien_(chieu|sang)_nhom[0-9]{2}\\..*");
-//		System.out.println(pattern.matcher(n).matches());
+		System.out.println(getHashedMd5("D:\\Development\\workspace\\school\\2019-2020-HK2\\DataWarehouse\\data\\sinhvien\\sinhvien_sang_nhom9.xlsx"));
 
 	}
 
