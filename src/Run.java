@@ -8,10 +8,17 @@ public class Run {
 				System.out.println("missing input value");
 			} else {
 				if (args[0].equals("download")) {
-					int configID = Integer.parseInt(args[1]);
-					Downloader.startDowload(configID);
+					if (args.length == 2 && args[1] != null) {
+						Downloader.startDowload(Integer.parseInt(args[1]));
+					} else {
+						Downloader.startDowload();
+					}
 				} else if (args[0].equals("etl")) {
-					new ETL();
+					if (args.length == 2 && args[1] != null) {
+						ETL.startETL(Integer.parseInt(args[1]));
+					} else {
+						ETL.startETL();
+					}
 				}
 			}
 		} catch (Exception e) {

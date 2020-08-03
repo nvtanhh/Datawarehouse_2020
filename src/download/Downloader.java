@@ -24,7 +24,7 @@ import utils.FileExtentionUtils;
 
 public class Downloader {
 
-	private static void startDowload() throws Exception {
+	public static void startDowload() throws Exception {
 		Statement statement = DBConnector.loadControlConnection().createStatement();
 		String sql = "SELECT id FROM `config`";
 		ResultSet rs = statement.executeQuery(sql);
@@ -226,8 +226,8 @@ public class Downloader {
 		if (!respone.isEmpty()) {
 			String[] spliter = respone.split("  "); // 2 white space
 			Statement statement = DBConnector.loadControlConnection().createStatement();
-			String sql = "SELECT * FROM `resources_control` WHERE remote_file = '" + spliter[1].replace("\\", "\\\\") + "' AND "
-					+ "config_id = " + configID;
+			String sql = "SELECT * FROM `resources_control` WHERE remote_file = '" + spliter[1].replace("\\", "\\\\")
+					+ "' AND " + "config_id = " + configID;
 			ResultSet resultSet = statement.executeQuery(sql);
 			if (resultSet.next()) {
 				if (!resultSet.getString("checksum").equals(spliter[0])) {
@@ -239,8 +239,8 @@ public class Downloader {
 					return false;
 				}
 			} else {
-				sql = "INSERT INTO `resources_control` VALUES(default," + configID + ",'" + spliter[1].replace("\\", "\\\\") + "','"
-						+ spliter[0] + "')";
+				sql = "INSERT INTO `resources_control` (config_id,remote_file,checksum) VALUES(" + configID + ",'"
+						+ spliter[1].replace("\\", "\\\\") + "','" + spliter[0] + "')";
 				statement.executeUpdate(sql);
 				return true;
 			}
@@ -256,9 +256,11 @@ public class Downloader {
 		log.setComment("Connect Failed");
 		log.commitDownload();
 	}
-
+	
+	
 	public static void main(String[] args) throws Exception {
-//		startDowload(2);
+		startDowload();
 	}
+
 
 }

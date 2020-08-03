@@ -11,7 +11,8 @@ import model.Process;
 import model.ProcessStatus;
 
 public class ETL {
-	public ETL() throws SQLException {
+
+	public static void startETL() throws SQLException {
 
 		String sql = "SELECT * FROM `process` WHERE process.status = '" + ProcessStatus.QUEUED
 				+ "' OR process.status = '" + ProcessStatus.WAITTING + "'";
@@ -21,12 +22,22 @@ public class ETL {
 		while (rs.next()) {
 			final int processID = rs.getInt("id");
 			if (checkParentProcess(processID)) {
-				final int dataConfigID = rs.getInt("data_config_id");
-				new Thread(() -> doETL(processID, dataConfigID)).start();
+				new Thread(() -> doETL(processID)).start();
 			} else {
 				Process.updateStatuss(processID, ProcessStatus.WAITTING);
 			}
 		}
+	}
+
+	public static void startETL(int id) throws SQLException {
+		if (checkParentProcess(id)) {
+			new Thread(() -> doETL(id)).start();
+		} else {
+			Process.updateStatuss(id, ProcessStatus.WAITTING);
+		}
+	}
+
+	public ETL() throws SQLException {
 
 	}
 
@@ -62,11 +73,11 @@ public class ETL {
 		return true;
 	}
 
-	public void doETL(int processID, int dataConfigID) {
+	public static void doETL(int processID) {
 		Process.updateStatuss(processID, ProcessStatus.RUNNING);
 
-		String sql = "SELECT * FROM `config` JOIN `logs` ON config.id = logs.config_id WHERE logs.status = '"
-				+ LogStatus.EXTRACT_READY + "' AND config.id = " + dataConfigID;
+		String sql = "SELECT * FROM `config` JOIN `logs` ON config.id = logs.config_id JOIN `process` ON process.data_config_id = config.id WHERE logs.status = '"
+				+ LogStatus.EXTRACT_READY + "' AND process.id = " + processID;
 		try {
 			Statement statement = DBConnector.loadControlConnection().createStatement();
 			ResultSet rs = statement.executeQuery(sql);
@@ -97,7 +108,7 @@ public class ETL {
 				stagingConn.close();
 				warehouseConn.close();
 			}
-
+			Process.updateStatuss(processID, ProcessStatus.SUCCESS);
 			statement.close();
 		} catch (SQLException e) {
 			// QUEUE a new process in db
@@ -110,17 +121,13 @@ public class ETL {
 			return;
 		}
 
-		Process.updateStatuss(processID, ProcessStatus.SUCCESS);
 	}
 
-	private void truncateTable(String stagingTable, int stagingDB) throws SQLException {
+	private static void truncateTable(String stagingTable, int stagingDB) throws SQLException {
 		Statement stament = DBConnector.getConnectionFormDB(stagingDB).createStatement();
 		String sql = "TRUNCATE TABLE " + stagingTable;
 		stament.executeUpdate(sql);
 		stament.close();
 	}
 
-	public static void main(String[] args) throws SQLException {
-		new ETL();
-	}
 }

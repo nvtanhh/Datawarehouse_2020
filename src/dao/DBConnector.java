@@ -44,8 +44,7 @@ public class DBConnector {
 	}
 
 	public static Connection loadControlConnection() {
-		try (FileInputStream f = new FileInputStream("src/config.properties")) {
-
+		try (FileInputStream f = new FileInputStream("./config/config.properties")) {
 			// load the properties file
 			Properties pros = new Properties();
 			pros.load(f);
