@@ -152,7 +152,7 @@ public class CSVUtils {
 		return v;
 	}
 
-	public static void main(String[] args) throws Exception {
+//	public static void main(String[] args) throws Exception {
 //		 convertExcelToCSV(
 //				"D:\\Development\\workspace\\school\\2019-2020-HK2\\DataWarehouse\\data\\subjects\\subjects1.xlsx"); // ok
 //		convertTxtToCSV("data/raw/a.txt");
@@ -161,8 +161,7 @@ public class CSVUtils {
 //		String str = "kushalhs,mayurvm,narendrabz,,,";
 //		str = str.trim().replaceAll(",$", "");
 //		System.out.println(str);  // prints "kushalhs, mayurvm, narendrabz"
-
-	}
+//	}
 
 	public static String convertTxtToCSV(String src) throws CommunicationException {
 		try {

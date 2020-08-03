@@ -14,7 +14,8 @@ import model.MyLog;
 
 public class Transformer {
 	public static void doTransform(String stagingTable, Connection stagingConn, String warehouseTable,
-			Connection warehouseConn, String targetFields, int processConfigID, String sourcesType, int logID) throws SQLException {
+			Connection warehouseConn, String targetFields, int processConfigID, String sourcesType, int logID)
+			throws SQLException {
 		Timestamp startDT = new Timestamp(new Date().getTime());
 		try {
 			String callQuery = buildCallQuery(processConfigID);
@@ -25,13 +26,12 @@ public class Transformer {
 			ResultSet rs = stagingStatement.executeQuery(sql);
 			int rowAffected = 0;
 
-			if (sourcesType.equals("F")) {  // if data type is fact 
+			if (sourcesType.equals("F")) { // if data type is fact
 				while (rs.next()) {
 					String[] spliter = targetFields.split(",");
 					for (int i = 0; i < spliter.length; i++) {
 						callStatement.setString(i + 1, rs.getString(spliter[i]));
 					}
-//					callStatement.setInt(spliter.length + 1, logID);
 					try {
 						callStatement.executeQuery();
 
@@ -48,7 +48,6 @@ public class Transformer {
 						for (int i = 0; i < spliter.length; i++) {
 							callStatement.setString(i + 1, rs.getString(spliter[i]));
 						}
-//						callStatement.setInt(spliter.length + 1, logID);
 						callStatement.executeQuery();
 						rowAffected++;
 					}

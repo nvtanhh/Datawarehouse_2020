@@ -8,8 +8,16 @@ import java.sql.Statement;
 import dao.DBConnector;
 
 public class Process {
-	private int id, dataConfigID;
+	private int id, dataConfigID, processConfigID;
 	private String status, comment;
+
+	public int getProcessConfigID() {
+		return processConfigID;
+	}
+
+	public void setProcessConfigID(int processConfigID) {
+		this.processConfigID = processConfigID;
+	}
 
 	public String getComment() {
 		return comment;
@@ -43,15 +51,16 @@ public class Process {
 		this.status = status;
 	}
 
-	public void save()  {
+	public void save() {
 		Connection connection = DBConnector.loadControlConnection();
-		String sql = "INSERT INTO process (data_config_id , status, comment) VALUES (?,?,?)";
+		String sql = "INSERT INTO process (data_config_id, process_config_id, status, comment) VALUES (?,?,?,?)";
 		PreparedStatement pStatement = null;
 		try {
 			pStatement = connection.prepareStatement(sql);
 			pStatement.setInt(1, dataConfigID);
-			pStatement.setString(2, status);
-			pStatement.setString(3, comment);
+			pStatement.setInt(2, processConfigID);
+			pStatement.setString(3, status);
+			pStatement.setString(4, comment);
 			pStatement.executeUpdate();
 			pStatement.close();
 			connection.close();

@@ -63,9 +63,9 @@ public class EmailHelper extends Thread {
 //		email.start(); // start thread send email
 //	}
 
-	public static void main(String[] args) {
-		EmailHelper e = new EmailHelper("kingtxx98@gmail.com", "asdkjah", "asad");
-		e.sendMail();
-	}
+//	public static void main(String[] args) {
+//		EmailHelper e = new EmailHelper("kingtxx98@gmail.com", "asdkjah", "asad");
+//		e.sendMail();
+//	}
 
 }

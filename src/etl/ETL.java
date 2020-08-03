@@ -20,41 +20,45 @@ public class ETL {
 		ResultSet rs = statement.executeQuery(sql);
 		while (rs.next()) {
 			final int processID = rs.getInt("id");
-			if (checkParentProcess(processID)) { // hasn't implemented yet
+			if (checkParentProcess(processID)) {
 				final int dataConfigID = rs.getInt("data_config_id");
 				new Thread(() -> doETL(processID, dataConfigID)).start();
 			} else {
-				Process process = new Process();
-				process.setDataConfigID(processID);
-				process.setStatus(ProcessStatus.WAITTING);
-				process.save();
+				Process.updateStatuss(processID, ProcessStatus.WAITTING);
 			}
 		}
 
 	}
 
-	private boolean checkParentProcess(int dataConfigID) {
-//
-//		String sql = "SELECT * FORM `config` JOIN `process_config` ON config.process_config_id = process_config.id WHERE config.id = "
-//				+ dataConfigID;
-//
-//		try {
-//			Connection conn = DBConnector.loadControlConnection();
-//			Statement controlStatement = conn.createStatement();
-//			ResultSet rs = controlStatement.executeQuery(sql);
-//			String[] spliter = null;
-//			if (rs.next()) {
-//				spliter = rs.getString("parent_process_ids").split(",");
-//			}
-//			int[] parentIDs = new int[spliter.length];
-//			for (int i = 0; i < spliter.length; i++) {
-//				parentIDs[i] = Integer.parseInt(spliter[i]);
-//			}
-//		} catch (SQLException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
+	private static boolean checkParentProcess(int dataConfigID) {
 
+		String sql = "SELECT * FROM `process` JOIN `process_config` ON process_config.id = process.process_config_id WHERE process.id = "
+				+ dataConfigID;
+
+		try (Statement controlStatement = DBConnector.loadControlConnection().createStatement()) {
+			ResultSet rs = controlStatement.executeQuery(sql);
+			String[] parentIDs = null; // var use to store id's parent processes of this process
+			if (rs.next()) {
+				String processIDs = rs.getString("parent_process_ids");
+				if (processIDs == null)
+					return true;
+				parentIDs = processIDs.split(",");
+			} else {
+				return false;
+			}
+			for (int i = 0; i < parentIDs.length; i++) {
+				sql = "SELECT 1 FROM `process` WHERE process.process_config_id = " + Integer.parseInt(parentIDs[i])
+						+ "  AND DATE(process.update_at) = CURDATE() AND process.status = '" + ProcessStatus.SUCCESS
+						+ "'";
+				rs = controlStatement.executeQuery(sql);
+				if (!rs.next()) {
+					return false;
+				}
+			}
+			controlStatement.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 		return true;
 	}
 
@@ -103,6 +107,7 @@ public class ETL {
 			process.setComment(e.getMessage());
 			process.save();
 //			sent mail for notifycation
+			return;
 		}
 
 		Process.updateStatuss(processID, ProcessStatus.SUCCESS);
