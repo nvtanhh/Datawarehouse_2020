@@ -24,13 +24,15 @@ import model.ProcessStatus;
 import utils.FileExtentionUtils;
 
 public class Downloader {
-
+//	duyet config dowload het cac id trong config
 	public static void startDowload() throws Exception {
 		Statement statement = DBConnector.loadControlConnection().createStatement();
 		String sql = "SELECT id FROM `config`";
 		ResultSet rs = statement.executeQuery(sql);
 		while (rs.next()) {
+			// duyet config dowload tung id 
 			final int id = rs.getInt("id");
+			// cai tien cho chay nhanh hon
 			new Thread(() -> {
 				try {
 					startDowload(id);
@@ -41,14 +43,14 @@ public class Downloader {
 		}
 
 	}
-
+//	dowload theo id
 	public static void startDowload(int id) throws Exception {
 		Statement statement = DBConnector.loadControlConnection().createStatement();
 		String sql = "SELECT * FROM `config` WHERE id = " + id;
 
 		ResultSet rs = statement.executeQuery(sql);
 		if (rs.next()) {
-
+			// kiem tra xem file dang o dau
 			String sourcesStatus = rs.getString("sources_status");
 
 			if (sourcesStatus.equals("REMOTE")) {
@@ -59,7 +61,7 @@ public class Downloader {
 			statement.close();
 		}
 	}
-
+//	xu ly file o local
 	private static void processLocalFiles(Statement statement, ResultSet rs) throws SQLException, IOException {
 		int configID = rs.getInt("id");
 		String localDir = rs.getString("local_dir");
@@ -67,6 +69,7 @@ public class Downloader {
 
 		File local = new File(localDir);
 		if (!local.exists()) {
+			// file khong ton tai set log 
 			MyLog log = new MyLog();
 			log.setConfig_id(configID);
 			log.setStatus(LogStatus.ERROR);
@@ -76,6 +79,7 @@ public class Downloader {
 			log.commitDownload();
 		} else {
 			if (local.isFile()) {
+				//kiem tra xem file co thay doi khong
 				if (isCheckSumHasChange(local.getAbsolutePath(), configID)) {
 					MyLog log = new MyLog();
 					log.setConfig_id(configID);
@@ -95,6 +99,7 @@ public class Downloader {
 			} else if (local.isDirectory()) {
 				File[] files = local.listFiles();
 				for (int i = 0; i < files.length; i++) {
+					//kiem tra xem file co thay doi khong
 					if (isCheckSumHasChange(local.getAbsolutePath(), configID)) {
 						MyLog log = new MyLog();
 						log.setConfig_id(configID);
@@ -116,7 +121,7 @@ public class Downloader {
 		}
 
 	}
-
+//	dowload file tu remote
 	private static void downloadRemoteFiles(Statement statement, ResultSet rs) throws Exception {
 		int configID = rs.getInt("id");
 		String localDir = rs.getString("local_dir");
@@ -133,25 +138,28 @@ public class Downloader {
 
 		if (!folder.exists())
 			folder.mkdirs();
-
+// command
 		SSHManager instance = new SSHManager(userName, password, host, "", port);
 		String errorMessage = instance.connect();
+		//		kiem tra da ket noi duoc hay chua
 		if (errorMessage != null) {
 			System.out.println(errorMessage);
 			connectFailed(statement, configID);
 			return;
 		}
-
+		//gui command len server
 		String listFilesCmd = "ls " + remoteDir;
 		String[] allFiles = instance.sendCommand(listFilesCmd).split("\n");
-
-		ArrayList<String> filesNeedDownload = filter(allFiles, types, regex); // filter by extention and filename
-
+//		files Need Download by extention and filename
+		ArrayList<String> filesNeedDownload = filter(allFiles, types, regex); // filter by extention and
+																				// filename
+//		loc lai nhung file co thay doi
 		filesNeedDownload = checkSum(instance, filesNeedDownload, remoteDir, configID);
 		for (int i = 0; i < filesNeedDownload.size(); i++) {
 			String rfile = filesNeedDownload.get(i);
 			String lfile = localDir + "/" + rfile.substring(rfile.lastIndexOf("/") + 1);
 			try {
+				//	dowload file
 				instance.download(lfile, rfile);
 			} catch (Exception e) {
 				MyLog log = new MyLog();
@@ -194,10 +202,10 @@ public class Downloader {
 			return md5;
 		}
 	}
-
+//	loc ra nhung file có extentions can dowload ve
 	private static ArrayList<String> filter(String[] allFiles, String types, String fileRegex) {
 		ArrayList<String> result = new ArrayList<String>();
-
+		// lay duoi file
 		Pattern pattern = Pattern.compile(fileRegex);
 		List<String> extentions = Arrays.asList(types.split(","));
 		for (int i = 0; i < allFiles.length; i++) {
@@ -208,22 +216,23 @@ public class Downloader {
 		}
 		return result;
 	}
-
+// tra ve danh sach file co thay doi
 	private static ArrayList<String> checkSum(SSHManager instance, ArrayList<String> filesNeedDownload,
 			String remote_dir, int configID) throws SQLException {
 		ArrayList<String> result = new ArrayList<String>();
 		for (int i = 0; i < filesNeedDownload.size(); i++) {
 			String absolutePath = remote_dir + "/" + filesNeedDownload.get(i);
+			// gui command
 			String checkSumCmd = "md5sum " + absolutePath;
 			String respone = instance.sendCommand(checkSumCmd);
-
+			// neu thay doi thi add vao
 			if (hasChange(respone, configID)) {
 				result.add(absolutePath);
 			}
 		}
 		return result;
 	}
-
+//lay len checksum kiem ra voi file can dowload co thay doi khong
 	private static boolean hasChange(String respone, int configID) throws SQLException {
 		if (!respone.isEmpty()) {
 			String[] spliter = respone.split("  "); // 2 white space
@@ -232,6 +241,7 @@ public class Downloader {
 					+ "' AND " + "config_id = " + configID;
 			ResultSet resultSet = statement.executeQuery(sql);
 			if (resultSet.next()) {
+				// neu nhu thay doi thi update lai resources_control
 				if (!resultSet.getString("checksum").equals(spliter[0])) {
 					sql = "UPDATE `resources_control` SET  resources_control.checksum = '" + spliter[0]
 							+ "' WHERE  resources_control.id = " + resultSet.getInt("id");
@@ -241,6 +251,7 @@ public class Downloader {
 					return false;
 				}
 			} else {
+				// neu nhu chua ton tai
 				sql = "INSERT INTO `resources_control` (config_id,remote_file,checksum) VALUES(" + configID + ",'"
 						+ spliter[1].replace("\\", "\\\\") + "','" + spliter[0] + "')";
 				statement.executeUpdate(sql);
@@ -249,7 +260,7 @@ public class Downloader {
 		}
 		return false;
 	}
-
+//	set log neu connect loi
 	private static void connectFailed(Statement statement, int configID) throws SQLException {
 		String sql = "SELECT config.watcher FROM `config` WHERE config.id = " + configID;
 		ResultSet rs = statement.executeQuery(sql);
