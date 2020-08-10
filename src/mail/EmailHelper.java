@@ -50,7 +50,7 @@ public class EmailHelper extends Thread {
 			message.setSubject(this.subject, "UTF-8");
 			message.setText(this.body, "UTF-8");
 			Transport.send(message);
-			System.out.println("message sent successfully...");
+			System.out.println("sent mail successfully...");
 		} catch (MessagingException e) {
 			e.printStackTrace();
 		}

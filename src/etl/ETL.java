@@ -13,7 +13,7 @@ import model.ProcessStatus;
 
 public class ETL {
 
-	public static void startETL() throws SQLException {
+	public static void startETL() throws SQLException, InterruptedException {
 
 		String sql = "SELECT * FROM `process` WHERE process.status = '" + ProcessStatus.QUEUED
 				+ "' OR process.status = '" + ProcessStatus.WAITTING + "'";
@@ -22,12 +22,26 @@ public class ETL {
 		ResultSet rs = statement.executeQuery(sql);
 		while (rs.next()) {
 			final int processID = rs.getInt("id");
-			if (checkParentProcess(processID)) {
-				new Thread(() -> doETL(processID)).start();
+			if (checkCurrentProcess(processID) && checkParentProcess(processID)) { // check parent proccess is SUCCESS  and sure that current process config is not RUNNING
+				new Thread(() -> doETL(processID)).start(); // if was success do etl
+				Thread.sleep(100);
 			} else {
-				Process.updateStatuss(processID, ProcessStatus.WAITTING);
+				Process.updateStatuss(processID, ProcessStatus.WAITTING); // over
 			}
 		}
+	}
+
+	private static boolean checkCurrentProcess(int processID) throws SQLException {
+		String sql = "SELECT * FROM process WHERE process.status = 'RUNNING' AND  process_config_id="
+				+ "(SELECT process_config_id FROM `process` WHERE process.id = " + processID + ")";
+		Statement statement = DBConnector.loadControlConnection().createStatement();
+		ResultSet rs = statement.executeQuery(sql);
+		if (rs.next()) {
+			statement.close();
+			return false;
+		}
+		statement.close();
+		return true;
 	}
 
 	public static void startETL(int id) throws SQLException {
@@ -38,9 +52,6 @@ public class ETL {
 		}
 	}
 
-	public ETL() throws SQLException {
-
-	}
 
 	private static boolean checkParentProcess(int dataConfigID) {
 
@@ -154,7 +165,8 @@ public class ETL {
 		stament.close();
 	}
 
-	public static void main(String[] args) throws SQLException {
+	public static void main(String[] args) throws SQLException, InterruptedException {
 		ETL.startETL();
 	}
+
 }

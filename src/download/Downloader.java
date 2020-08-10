@@ -266,7 +266,6 @@ public class Downloader {
 		ResultSet rs = statement.executeQuery(sql);
 		if (rs.next()) {
 			String watcher = rs.getString("watcher");
-			System.out.println(watcher);
 			String subject = "DATAWAREHOUSE_2020 EROR NOTIFICATION";
 			String mess = "The connection to the server failed!\r\nHave a look at dw_control.config[id=" + configID
 					+ "]";
@@ -282,8 +281,5 @@ public class Downloader {
 		log.commitDownload();
 	}
 
-	public static void main(String[] args) throws Exception {
-		Downloader.startDowload(1);
-	}
 
 }
