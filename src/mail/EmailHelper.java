@@ -56,16 +56,5 @@ public class EmailHelper extends Thread {
 		}
 	}
 
-//	private static void sendMail(String type, String mess) {
-//		String watcher = Control.watcher;
-//		String subject = "Datawarehouse_2020 " + type.toUpperCase() + " notifycation";
-//		EmailHelper email = new EmailHelper(watcher, subject, mess);
-//		email.start(); // start thread send email
-//	}
-
-//	public static void main(String[] args) {
-//		EmailHelper e = new EmailHelper("kingtxx98@gmail.com", "asdkjah", "asad");
-//		e.sendMail();
-//	}
 
 }

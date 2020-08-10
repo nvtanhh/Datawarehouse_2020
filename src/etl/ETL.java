@@ -6,6 +6,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import dao.DBConnector;
+import mail.EmailHelper;
 import model.LogStatus;
 import model.Process;
 import model.ProcessStatus;
@@ -78,8 +79,10 @@ public class ETL {
 
 		String sql = "SELECT * FROM `config` JOIN `logs` ON config.id = logs.config_id JOIN `process` ON process.data_config_id = config.id WHERE logs.status = '"
 				+ LogStatus.EXTRACT_READY + "' AND process.id = " + processID;
+
+		Statement statement = null;
 		try {
-			Statement statement = DBConnector.loadControlConnection().createStatement();
+			statement = DBConnector.loadControlConnection().createStatement();
 			ResultSet rs = statement.executeQuery(sql);
 			while (rs.next()) {
 				int logID = rs.getInt("logs.id");
@@ -108,6 +111,7 @@ public class ETL {
 				stagingConn.close();
 				warehouseConn.close();
 			}
+			System.out.println("Process[ID=" + processID + "] etl successfully!");
 			Process.updateStatuss(processID, ProcessStatus.SUCCESS);
 			statement.close();
 		} catch (SQLException e) {
@@ -118,7 +122,27 @@ public class ETL {
 			process.setComment(e.getMessage());
 			process.save();
 //			sent mail for notifycation
+			sentMailError(statement, processID);
 			return;
+		}
+
+	}
+
+	private static void sentMailError(Statement statement, int processID) {
+		String sql = "SELECT config.watcher FROM `config` JOIN process ON config.id = process.data_config_id WHERE process.id = "
+				+ processID;
+		ResultSet rs;
+		try {
+			rs = statement.executeQuery(sql);
+			if (rs.next()) {
+				String watcher = rs.getString("watcher");
+				String subject = "DATAWAREHOUSE_2020 EROR NOTIFICATION";
+				String mess = "ETL process failed!\r\nHave a look at dw_controll.procss[id=" + processID + "]";
+				EmailHelper maiHelper = new EmailHelper(watcher, subject, mess);
+				maiHelper.start();
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
 		}
 
 	}
@@ -130,4 +154,7 @@ public class ETL {
 		stament.close();
 	}
 
+	public static void main(String[] args) throws SQLException {
+		ETL.startETL();
+	}
 }

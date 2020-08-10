@@ -16,14 +16,14 @@ public class ImportCSV {
 	public static MyLog importCSVtoDB(String src, String stagingTable, Connection stagingConn, String stagingFields)
 			throws CommunicationException {
 		String cmt = "";
-		
-		if (!TableHelpper.isExist(stagingConn, stagingTable)) {
+
+		if (!TableHelpper.isExist(stagingConn, stagingTable)) {  // Check if the table is not exist -> create it.
 			TableHelpper.createTable(stagingConn, stagingTable, stagingFields);
 		}
 
 		try {
-//			stagingFields = TableHelpper.getCols(stagingConn, stagingTable);
-			if (src != null && checkFields(stagingFields, src)) {
+			if (src != null && checkFields(stagingFields, src)) { // check file is enough fields or not
+				// load file into staging databse
 				String loadQuery = "LOAD DATA LOCAL INFILE '" + src + "' INTO TABLE " + stagingTable + ""
 						+ " FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\\r\\n' (" + stagingFields
 						+ ")";
@@ -34,7 +34,7 @@ public class ImportCSV {
 				endDT = new Timestamp(new Date().getTime());
 
 				cmt = "Extract " + rs + " from '" + src + "' records into " + stagingConn.getCatalog() + "/"
-						+ stagingTable;
+						+ stagingTable; // just a comment	
 
 				MyLog log = new MyLog();
 				log.setExtractEndDT(endDT);

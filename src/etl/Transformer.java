@@ -18,7 +18,7 @@ public class Transformer {
 			throws SQLException {
 		Timestamp startDT = new Timestamp(new Date().getTime());
 		try {
-			String callQuery = buildCallQuery(processConfigID);
+			String callQuery = loadCallQuery(processConfigID);
 			CallableStatement callStatement = warehouseConn.prepareCall(callQuery);
 			warehouseConn.setAutoCommit(false);
 			String sql = "SELECT * FROM `" + stagingTable + "`";
@@ -78,7 +78,7 @@ public class Transformer {
 
 	}
 
-	private static String buildCallQuery(int processConfigID) throws SQLException {
+	private static String loadCallQuery(int processConfigID) throws SQLException {
 		Statement connStatement = DBConnector.loadControlConnection().createStatement();
 		String sql = "SELECT * FROM `process_config` WHERE id = " + processConfigID;
 		ResultSet rs = connStatement.executeQuery(sql);

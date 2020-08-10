@@ -17,21 +17,22 @@ import utils.ImportCSV;
 
 public class Extracter {
 
-	public static void doExtract(int logID, String filePath, String stagingTable, Connection stagingConn, String stagingFields)
-			throws Exception {
+	public static void doExtract(int logID, String filePath, String stagingTable, Connection stagingConn,
+			String stagingFields) throws Exception {
 		MyLog log = null;
 		String tempCsvFile = null;
 
 		Timestamp startDT = new Timestamp(new Date().getTime());
 
 		try {
-			if (FileExtentionUtils.isExcel(filePath)) {
+			if (FileExtentionUtils.isExcel(filePath)) {  // if file is excel convert it to "csv" format
 				tempCsvFile = CSVUtils.convertExcelToCSV(filePath);
 			}
 
-			if (FileExtentionUtils.isTxt(filePath) || FileExtentionUtils.isCSV(filePath)) {
+			if (FileExtentionUtils.isTxt(filePath) || FileExtentionUtils.isCSV(filePath)) {  // if file format is text or csv convert it to "csv" format
 				tempCsvFile = CSVUtils.convertTxtToCSV(filePath);
 			}
+
 		} catch (Exception e) {
 			delete(tempCsvFile);
 			log = new MyLog();
@@ -41,18 +42,17 @@ public class Extracter {
 			log.setStatus(LogStatus.ERROR);
 			log.setComment(e.getMessage());
 			log.commitExtract();
-//			sendMail("error", logID, e.getMessage());
+			delete(tempCsvFile);
 			throw new Exception();
 		}
 
 		try {
-			log = ImportCSV.importCSVtoDB(tempCsvFile.replace("\\", "\\\\"), stagingTable, stagingConn, stagingFields);
+			log = ImportCSV.importCSVtoDB(tempCsvFile.replace("\\", "\\\\"), stagingTable, stagingConn, stagingFields); // import csv file to staging
 			log.setId(logID);
 			log.setExtractStartDT(startDT);
 			log.commitExtract();
 			delete(tempCsvFile);
 			if (log.getStatus() == LogStatus.ERROR) {
-//					sendMail("error", logID, log.getComment());
 				throw new Exception();
 			}
 		} catch (CommunicationException e) {

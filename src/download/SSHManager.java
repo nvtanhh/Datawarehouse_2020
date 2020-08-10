@@ -38,14 +38,14 @@ public class SSHManager {
 	public SSHManager(String userName, String password, String connectionIP, String knownHostsFileName) {
 		doCommonConstructorActions(userName, password, connectionIP, knownHostsFileName);
 		intConnectionPort = 22;
-		intTimeOut = 60000;
+		intTimeOut = 30000;
 	}
 
 	public SSHManager(String userName, String password, String connectionIP, String knownHostsFileName,
 			int connectionPort) {
 		doCommonConstructorActions(userName, password, connectionIP, knownHostsFileName);
 		intConnectionPort = connectionPort;
-		intTimeOut = 60000;
+		intTimeOut = 30000;
 	}
 
 	public SSHManager(String userName, String password, String connectionIP, String knownHostsFileName,

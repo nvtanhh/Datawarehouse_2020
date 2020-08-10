@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import dao.DBConnector;
+import mail.EmailHelper;
 import model.LogStatus;
 import model.MyLog;
 import model.Process;
@@ -125,7 +126,7 @@ public class Downloader {
 		String password = rs.getString("password");
 		String remoteDir = rs.getString("remote_dir");
 		String types = rs.getString("file_extentions");
-		String regex = rs.getString("file_regex").replace("\\\\", "\\");
+		String regex = rs.getString("file_regex");
 		int processConfigID = rs.getInt("process_config_id");
 
 		File folder = new File(localDir);
@@ -140,11 +141,11 @@ public class Downloader {
 			connectFailed(statement, configID);
 			return;
 		}
+
 		String listFilesCmd = "ls " + remoteDir;
 		String[] allFiles = instance.sendCommand(listFilesCmd).split("\n");
 
-		ArrayList<String> filesNeedDownload = filter(allFiles, types, regex); // filter by extention and
-																				// filename
+		ArrayList<String> filesNeedDownload = filter(allFiles, types, regex); // filter by extention and filename
 
 		filesNeedDownload = checkSum(instance, filesNeedDownload, remoteDir, configID);
 		for (int i = 0; i < filesNeedDownload.size(); i++) {
@@ -196,6 +197,7 @@ public class Downloader {
 
 	private static ArrayList<String> filter(String[] allFiles, String types, String fileRegex) {
 		ArrayList<String> result = new ArrayList<String>();
+
 		Pattern pattern = Pattern.compile(fileRegex);
 		List<String> extentions = Arrays.asList(types.split(","));
 		for (int i = 0; i < allFiles.length; i++) {
@@ -249,6 +251,18 @@ public class Downloader {
 	}
 
 	private static void connectFailed(Statement statement, int configID) throws SQLException {
+		String sql = "SELECT config.watcher FROM `config` WHERE config.id = " + configID;
+		ResultSet rs = statement.executeQuery(sql);
+		if (rs.next()) {
+			String watcher = rs.getString("watcher");
+			System.out.println(watcher);
+			String subject = "DATAWAREHOUSE_2020 EROR NOTIFICATION";
+			String mess = "The connection to the server failed!\r\nHave a look at dw_control.config[id=" + configID
+					+ "]";
+			EmailHelper maiHelper = new EmailHelper(watcher, subject, mess);
+			// sent mail
+			maiHelper.start();
+		}
 
 		MyLog log = new MyLog();
 		log.setConfig_id(configID);
@@ -256,11 +270,9 @@ public class Downloader {
 		log.setComment("Connect Failed");
 		log.commitDownload();
 	}
-	
-	
-	public static void main(String[] args) throws Exception {
-		startDowload();
-	}
 
+	public static void main(String[] args) throws Exception {
+		Downloader.startDowload(1);
+	}
 
 }
